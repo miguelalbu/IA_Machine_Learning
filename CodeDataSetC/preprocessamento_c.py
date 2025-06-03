@@ -70,3 +70,72 @@ class DataPreprocessorC:
             print(f"Desvio Padrão: {scaled_data[name].std():.4f}")
         
         return scaled_data, X, y
+    
+    def create_exploratory_analysis(self, df):
+        """Cria visualizações para análise exploratória"""
+        output_dir = os.path.join(self.results_path, 'exploratory')
+        os.makedirs(output_dir, exist_ok=True)
+        
+        # Separar features numéricas
+        numeric_df = df.select_dtypes(include=[np.number])
+        
+        # 1. Distribuição da variável alvo
+        plt.figure(figsize=(10, 6))
+        sns.histplot(data=df, x='Room_Occupancy_Count')
+        plt.title('Distribuição da Ocupação')
+        plt.savefig(os.path.join(output_dir, 'target_distribution.png'))
+        plt.close()
+        
+        # 2. Matriz de correlação (apenas variáveis numéricas)
+        plt.figure(figsize=(15, 12))
+        sns.heatmap(numeric_df.corr(), annot=True, cmap='coolwarm', fmt='.2f')
+        plt.title('Matriz de Correlação (Features Numéricas)')
+        plt.xticks(rotation=45)
+        plt.yticks(rotation=45)
+        plt.tight_layout()
+        plt.savefig(os.path.join(output_dir, 'correlation_matrix.png'))
+        plt.close()
+        
+        # 3. Boxplots das features numéricas
+        plt.figure(figsize=(15, 6))
+        numeric_df.drop('Room_Occupancy_Count', axis=1).boxplot()
+        plt.title('Distribuição das Features Numéricas')
+        plt.xticks(rotation=45)
+        plt.tight_layout()
+        plt.savefig(os.path.join(output_dir, 'features_distribution.png'))
+        plt.close()
+        
+        # 4. Análise temporal (opcional)
+        plt.figure(figsize=(15, 6))
+        df['Date'] = pd.to_datetime(df['Date'])
+        df.groupby('Date')['Room_Occupancy_Count'].mean().plot()
+        plt.title('Média de Ocupação por Data')
+        plt.xlabel('Data')
+        plt.ylabel('Ocupação Média')
+        plt.tight_layout()
+        plt.savefig(os.path.join(output_dir, 'temporal_analysis.png'))
+        plt.close()
+        
+    def get_target_statistics(self, df):
+        """Calcula estatísticas detalhadas da variável alvo"""
+        target = df['Room_Occupancy_Count']
+        stats = {
+            'Média': target.mean(),
+            'Mediana': target.median(),
+            'Desvio Padrão': target.std(),
+            'Variância': target.var(),
+            'Mínimo': target.min(),
+            'Máximo': target.max(),
+            'Quartis': target.quantile([0.25, 0.5, 0.75]).to_dict()
+        }
+        
+        print("\n=== Estatísticas Detalhadas da Variável Alvo ===")
+        for metric, value in stats.items():
+            if metric != 'Quartis':
+                print(f"{metric}: {value:.4f}")
+            else:
+                print("\nQuartis:")
+                for q, v in value.items():
+                    print(f"{q*100}%: {v:.4f}")
+        
+        return stats

@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import os
 import pandas as pd
+from preprocessamento_c import DataPreprocessorC
 
 class RegressionTrainer:
     def __init__(self):
@@ -69,17 +70,68 @@ class RegressionTrainer:
         plt.tight_layout()
         plt.savefig(f'{self.results_path}/regression_comparison.png')
         plt.close()
+    
+    def compare_metrics_with_stats(self, results, target_stats):
+        """Compara métricas do modelo com estatísticas da variável alvo"""
+        print("\n=== Comparação com Estatísticas Base ===")
+        
+        for model_name, metrics in results.items():
+            print(f"\nModelo: {model_name}")
+            print(f"RMSE: {metrics['RMSE']:.4f} (vs Desvio Padrão: {target_stats['Desvio Padrão']:.4f})")
+            print(f"MAE: {metrics['MAE']:.4f} (vs Média: {target_stats['Média']:.4f})")
+            
+            # Calcular erro relativo às estatísticas base
+            rmse_ratio = metrics['RMSE'] / target_stats['Desvio Padrão']
+            mae_ratio = metrics['MAE'] / target_stats['Média']
+            
+            print(f"RMSE/Desvio: {rmse_ratio:.4f}")
+            print(f"MAE/Média: {mae_ratio:.4f}")
+    
+    def plot_metrics_comparison(self, results, target_stats):
+        """Plota comparação entre métricas e estatísticas base"""
+        plt.figure(figsize=(12, 6))
+        
+        models = list(results.keys())
+        metrics = ['RMSE', 'MAE']
+        
+        x = np.arange(len(models))
+        width = 0.35
+        
+        for i, metric in enumerate(metrics):
+            values = [results[model][metric] for model in models]
+            plt.bar(x + i*width, values, width, label=metric)
+        
+        # Adicionar linhas de referência
+        plt.axhline(y=target_stats['Desvio Padrão'], color='r', linestyle='--', label='Desvio Padrão Base')
+        plt.axhline(y=target_stats['Média'], color='g', linestyle='--', label='Média Base')
+        
+        plt.xlabel('Modelos')
+        plt.ylabel('Valor')
+        plt.title('Comparação de Métricas vs Estatísticas Base')
+        plt.xticks(x + width/2, models)
+        plt.legend()
+        plt.tight_layout()
+        
+        plt.savefig(os.path.join(self.results_path, 'metrics_vs_stats.png'))
+        plt.close()
 
 if __name__ == "__main__":
-    from preprocessamento_c import DataPreprocessorC
-    
-    # Preparar dados
+    # Carregar e preparar dados
     preprocessor = DataPreprocessorC()
     df = preprocessor.load_and_analyze('data/Occupancy_Estimation_C.csv')
+    
+    # Análise exploratória e estatísticas
+    target_stats = preprocessor.get_target_statistics(df)
+    preprocessor.create_exploratory_analysis(df)
+    
+    # Pré-processamento
     df_cleaned = preprocessor.clean_data(df)
     scaled_data, X, y = preprocessor.scale_data(df_cleaned)
     
-    # Treinar e avaliar modelos
+    # Modelagem e avaliação
     trainer = RegressionTrainer()
     results = trainer.train_and_evaluate(scaled_data['standard'], y)
-    trainer.plot_results(results)
+    
+    # Comparações e visualizações
+    trainer.compare_metrics_with_stats(results, target_stats)
+    trainer.plot_metrics_comparison(results, target_stats)
