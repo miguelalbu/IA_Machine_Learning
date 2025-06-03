@@ -114,6 +114,66 @@ class RegressionTrainer:
         
         plt.savefig(os.path.join(self.results_path, 'metrics_vs_stats.png'))
         plt.close()
+    
+    def plot_all_metrics(self, results):
+        """
+        Cria visualizações agregadas comparando todas as métricas dos modelos
+        """
+        output_dir = os.path.join(self.results_path, 'metrics')
+        os.makedirs(output_dir, exist_ok=True)
+        
+        # Organizar dados para plotagem
+        metrics_df = pd.DataFrame(columns=['Modelo', 'Métrica', 'Valor'])
+        
+        for model_name, metrics in results.items():
+            for metric, value in metrics.items():
+                metrics_df = metrics_df.append({
+                    'Modelo': model_name,
+                    'Métrica': metric,
+                    'Valor': value
+                }, ignore_index=True)
+        
+        # 1. Gráfico de barras agrupadas
+        plt.figure(figsize=(12, 6))
+        sns.barplot(data=metrics_df, x='Modelo', y='Valor', hue='Métrica')
+        plt.title('Comparação de Métricas por Modelo')
+        plt.xticks(rotation=45)
+        plt.tight_layout()
+        plt.savefig(os.path.join(output_dir, 'metrics_comparison_bar.png'))
+        plt.close()
+        
+        # 2. Heatmap das métricas
+        plt.figure(figsize=(10, 8))
+        metrics_pivot = metrics_df.pivot(index='Modelo', columns='Métrica', values='Valor')
+        sns.heatmap(metrics_pivot, annot=True, fmt='.3f', cmap='YlOrRd')
+        plt.title('Heatmap das Métricas por Modelo')
+        plt.tight_layout()
+        plt.savefig(os.path.join(output_dir, 'metrics_heatmap.png'))
+        plt.close()
+        
+        # 3. Gráfico de radar (para visualização multidimensional)
+        fig = plt.figure(figsize=(10, 10))
+        ax = fig.add_subplot(111, projection='polar')
+        
+        models = metrics_pivot.index
+        metrics = metrics_pivot.columns
+        angles = np.linspace(0, 2*np.pi, len(metrics), endpoint=False)
+        
+        for model in models:
+            values = metrics_pivot.loc[model].values
+            values = np.concatenate((values, [values[0]]))  # Fechar o polígono
+            angles_plot = np.concatenate((angles, [angles[0]]))  # Fechar o polígono
+            
+            ax.plot(angles_plot, values, 'o-', linewidth=2, label=model)
+            ax.fill(angles_plot, values, alpha=0.25)
+        
+        ax.set_xticks(angles)
+        ax.set_xticklabels(metrics)
+        plt.title('Gráfico de Radar - Métricas por Modelo')
+        plt.legend(loc='upper right', bbox_to_anchor=(0.1, 0.1))
+        plt.tight_layout()
+        plt.savefig(os.path.join(output_dir, 'metrics_radar.png'))
+        plt.close()
 
 if __name__ == "__main__":
     # Carregar e preparar dados
@@ -132,6 +192,5 @@ if __name__ == "__main__":
     trainer = RegressionTrainer()
     results = trainer.train_and_evaluate(scaled_data['standard'], y)
     
-    # Comparações e visualizações
-    trainer.compare_metrics_with_stats(results, target_stats)
-    trainer.plot_metrics_comparison(results, target_stats)
+    # Gerar visualizações das métricas
+    trainer.plot_all_metrics(results)

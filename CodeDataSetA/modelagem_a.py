@@ -11,6 +11,10 @@ from sklearn.neural_network import MLPClassifier
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
+import sys
+sys.path.append(r'c:\Users\migue\OneDrive\Área de Trabalho\IA_Machine_Learning')
+
+from utils.visualization_metrics import MetricsVisualizer
 
 class ModelTrainer:
     def __init__(self):
@@ -170,7 +174,10 @@ if __name__ == "__main__":
     from preprocessamento_a import DataPreprocessor
     
     preprocessor = DataPreprocessor()
-    df = preprocessor.load_and_analyze('data/taiwanese_bankruptcy_A.csv')
+    
+    # Ajustar o caminho do arquivo
+    data_path = os.path.join(os.path.dirname(__file__), 'data', 'taiwanese_bankruptcy_A.csv')
+    df = preprocessor.load_and_analyze(data_path)
     df_cleaned = preprocessor.clean_data(df)
     scaled_data, y = preprocessor.scale_data(df_cleaned)
     
@@ -181,3 +188,5 @@ if __name__ == "__main__":
     trainer = ModelTrainer()
     results = trainer.train_and_evaluate(X, y)
     trainer.print_results(results)
+    visualizer = MetricsVisualizer('results/metrics')
+    visualizer.plot_classifier_metrics(results, 'A')
