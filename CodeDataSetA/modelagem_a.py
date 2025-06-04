@@ -15,6 +15,7 @@ import sys
 sys.path.append(r'c:\Users\migue\OneDrive\Área de Trabalho\IA_Machine_Learning')
 
 from utils.visualization_metrics import MetricsVisualizer
+from utils.cross_validation import CrossValidation
 
 class ModelTrainer:
     def __init__(self):
@@ -62,99 +63,15 @@ class ModelTrainer:
         
 
     def train_and_evaluate(self, X, y):
-        """Treina e avalia todos os modelos usando validação cruzada"""
-        results = {}
-        skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+        cv = CrossValidation(n_splits=5)
         
+        results = {}
         for name, model_info in self.models.items():
-            print(f"\nTreinando {name}...")
+            print(f"\nAvaliando modelo: {name}")
+            # Usar o modelo base, não o dicionário inteiro
             model = model_info['model']
-            params = model_info['params']
-            
-            # GridSearchCV
-            if params:
-                grid_search = GridSearchCV(
-                    model, params, cv=skf, scoring='f1',
-                    n_jobs=-1, verbose=1
-                )
-                grid_search.fit(X, y)
-                best_model = grid_search.best_estimator_
-                print(f"Melhores parâmetros: {grid_search.best_params_}")
-            else:
-                best_model = model.fit(X, y)
-            
-            # Validação cruzada com o melhor modelo
-            fold_results = []
-            prob_correct = []
-            prob_incorrect = []
-            
-            for fold, (train_idx, val_idx) in enumerate(skf.split(X, y), 1):
-                X_train, X_val = X[train_idx], X[val_idx]
-                y_train, y_val = y[train_idx], y[val_idx]
-                
-                best_model.fit(X_train, y_train)
-                y_pred = best_model.predict(X_val)
-                y_prob = best_model.predict_proba(X_val)[:, 1]
-                
-                # Coletar probabilidades para análise
-                correct_mask = y_pred == y_val
-                prob_correct.extend(y_prob[correct_mask])
-                prob_incorrect.extend(y_prob[~correct_mask])
-                
-                # Calcular métricas
-                metrics = {
-                    'Acurácia': accuracy_score(y_val, y_pred),
-                    'Precisão': precision_score(y_val, y_pred),
-                    'Recall': recall_score(y_val, y_pred),
-                    'F1': f1_score(y_val, y_pred),
-                    'AUC-ROC': roc_auc_score(y_val, y_prob)
-                }
-                fold_results.append(metrics)
-                
-                # Plotar matriz de confusão para cada fold
-                plt.figure(figsize=(8, 6))
-                cm = confusion_matrix(y_val, y_pred)
-                sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')
-                plt.title(f'{name} - Matriz de Confusão (Fold {fold})')
-                plt.ylabel('Real')
-                plt.xlabel('Predito')
-                plt.savefig(f'{self.results_path}/{name.replace(" ", "_")}_cm_fold_{fold}.png')
-                plt.close()
-                
-                # Plotar curva ROC
-                fpr, tpr, _ = roc_curve(y_val, y_prob)
-                plt.figure(figsize=(8, 6))
-                plt.plot(fpr, tpr, label=f'AUC = {metrics["AUC-ROC"]:.2f}')
-                plt.plot([0, 1], [0, 1], 'k--')
-                plt.xlabel('Taxa de Falso Positivo')
-                plt.ylabel('Taxa de Verdadeiro Positivo')
-                plt.title(f'{name} - Curva ROC (Fold {fold})')
-                plt.legend()
-                plt.savefig(f'{self.results_path}/{name.replace(" ", "_")}_roc_fold_{fold}.png')
-                plt.close()
-            
-            # Análise das probabilidades
-            plt.figure(figsize=(10, 6))
-            plt.hist(prob_correct, alpha=0.5, label='Classificações Corretas', bins=20)
-            plt.hist(prob_incorrect, alpha=0.5, label='Classificações Incorretas', bins=20)
-            plt.title(f'{name} - Distribuição das Probabilidades')
-            plt.xlabel('Probabilidade Predita')
-            plt.ylabel('Frequência')
-            plt.legend()
-            plt.savefig(f'{self.results_path}/{name.replace(" ", "_")}_prob_dist.png')
-            plt.close()
-            
-            # Calcular médias das métricas
-            mean_metrics = {}
-            for metric in fold_results[0].keys():
-                values = [fold[metric] for fold in fold_results]
-                mean_metrics[metric] = {
-                    'Média': np.mean(values),
-                    'Desvio Padrão': np.std(values)
-                }
-            
-            results[name] = mean_metrics
-            
+            results[name] = cv.evaluate_model(model, X, y)
+        
         return results
 
     def print_results(self, results):

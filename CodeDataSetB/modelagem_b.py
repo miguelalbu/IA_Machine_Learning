@@ -14,6 +14,7 @@ from imblearn.pipeline import Pipeline as ImbPipeline
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
+from sklearn.ensemble import RandomForestClassifier
 
 class ModelTrainer:
     def __init__(self):
@@ -24,43 +25,24 @@ class ModelTrainer:
         # Definindo modelos com parâmetros específicos para o dataset B
         self.models = {
             'Regressão Logística': {
-                'model': LogisticRegression(random_state=42),
-                'params': {
-                    'C': [0.1, 1.0, 10.0],
-                    'max_iter': [1000],
-                    'class_weight': ['balanced']
-                }
+                'model': LogisticRegression(max_iter=1000),
+                'params': {'C': [0.1, 1.0, 10.0]}
+            },
+            'Random Forest': {
+                'model': RandomForestClassifier(),
+                'params': {'n_estimators': [100, 200]}
             },
             'KNN': {
                 'model': KNeighborsClassifier(),
-                'params': {
-                    'n_neighbors': [3, 5, 7],
-                    'weights': ['uniform', 'distance'],
-                    'metric': ['euclidean', 'manhattan']
-                }
+                'params': {'n_neighbors': [3, 5, 7]}
             },
             'Árvore de Decisão': {
-                'model': DecisionTreeClassifier(random_state=42),
-                'params': {
-                    'max_depth': [5, 10, 15],
-                    'min_samples_split': [10, 20],
-                    'class_weight': ['balanced']
-                }
+                'model': DecisionTreeClassifier(),
+                'params': {'max_depth': [5, 10, None]}
             },
             'Naive Bayes': {
                 'model': GaussianNB(),
-                'params': {
-                    'var_smoothing': [1e-9, 1e-8, 1e-7]
-                }
-            },
-            'Rede Neural': {
-                'model': MLPClassifier(random_state=42),
-                'params': {
-                    'hidden_layer_sizes': [(50,), (100,), (50, 25)],
-                    'alpha': [0.0001, 0.001],
-                    'max_iter': [1000],
-                    'early_stopping': [True]
-                }
+                'params': {}
             }
         }
 
@@ -198,6 +180,54 @@ class ModelTrainer:
                 print(f"{metric_name}:")
                 print(f"  Média: {values['Média']:.4f}")
                 print(f"  Desvio Padrão: {values['Desvio Padrão']:.4f}")
+
+    def evaluate_model(self, model, X, y):
+        """
+        Realiza validação cruzada estratificada para o Dataset B (MiniBooNE)
+        """
+        skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+        
+        metrics = {
+            'balanced_accuracy': [],
+            'precision': [],
+            'recall': [],
+            'f1': []
+        }
+        
+        print(f"\nIniciando validação cruzada (5 folds):")
+        
+        # Executar validação cruzada
+        for fold, (train_idx, val_idx) in enumerate(skf.split(X, y), 1):
+            # Separar dados
+            X_train, X_val = X[train_idx], X[val_idx]
+            y_train, y_val = y[train_idx], y[val_idx]
+            
+            # Treinar e avaliar
+            model.fit(X_train, y_train)
+            y_pred = model.predict(X_val)
+            
+            # Calcular métricas
+            metrics['balanced_accuracy'].append(balanced_accuracy_score(y_val, y_pred))
+            metrics['precision'].append(precision_score(y_val, y_pred))
+            metrics['recall'].append(recall_score(y_val, y_pred))
+            metrics['f1'].append(f1_score(y_val, y_pred))
+            
+            # Imprimir resultados do fold
+            print(f"\nFold {fold}:")
+            print(f"Balanced Accuracy: {metrics['balanced_accuracy'][-1]:.4f}")
+            print(f"Precisão: {metrics['precision'][-1]:.4f}")
+            print(f"Recall: {metrics['recall'][-1]:.4f}")
+            print(f"F1-Score: {metrics['f1'][-1]:.4f}")
+        
+        # Calcular estatísticas finais
+        results = {}
+        for metric in metrics:
+            results[metric] = {
+                'Média': np.mean(metrics[metric]),
+                'Desvio Padrão': np.std(metrics[metric])
+            }
+        
+        return results
 
 if __name__ == "__main__":
     # Carregar dados pré-processados

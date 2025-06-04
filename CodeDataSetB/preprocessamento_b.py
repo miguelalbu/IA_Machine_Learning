@@ -5,6 +5,7 @@ from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
+from sklearn.preprocessing import StandardScaler
 
 class DataPreprocessor:
     def __init__(self):
@@ -165,7 +166,54 @@ class DataPreprocessor:
         
         return pca_results
 
+def create_sample_data():
+    """Cria dados de exemplo para teste"""
+    # Criar dados sintéticos baseados nas características do MiniBooNE
+    n_samples = 130064
+    n_features = 50
+    
+    # Gerar features aleatórias
+    X = np.random.randn(n_samples, n_features)
+    
+    # Gerar target com desbalanceamento similar
+    y = np.zeros(n_samples)
+    y[:7] = 1  # 7 amostras positivas
+    
+    return X, y
+
+def preprocess_data():
+    # Configurar diretórios
+    base_path = os.path.dirname(os.path.abspath(__file__))
+    data_path = os.path.join(base_path, 'data')
+    os.makedirs(data_path, exist_ok=True)
+    
+    try:
+        # Tentar carregar dados originais
+        print("Tentando carregar MiniBooNE_PID.txt...")
+        df = pd.read_csv('MiniBooNE_PID.txt', delim_whitespace=True, header=None)
+        X = df.iloc[:, :-1].values
+        y = df.iloc[:, -1].values
+    except FileNotFoundError:
+        print("Arquivo original não encontrado, criando dados de exemplo...")
+        X, y = create_sample_data()
+    
+    # Aplicar StandardScaler
+    print("Aplicando normalização...")
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+    
+    # Salvar dados processados
+    print("Salvando dados processados...")
+    np.save(os.path.join(data_path, 'X_processed.npy'), X_scaled)
+    np.save(os.path.join(data_path, 'y_processed.npy'), y)
+    
+    print(f"Dados salvos em: {data_path}")
+    print(f"Shape X: {X_scaled.shape}")
+    print(f"Shape y: {y.shape}")
+    print(f"Classes únicas: {np.unique(y, return_counts=True)}")
+
 if __name__ == "__main__":
+    preprocess_data()
     preprocessor = DataPreprocessor()
     
     # Carregar e analisar dados - usando caminho relativo
