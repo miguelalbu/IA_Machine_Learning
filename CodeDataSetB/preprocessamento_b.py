@@ -216,8 +216,9 @@ if __name__ == "__main__":
     preprocess_data()
     preprocessor = DataPreprocessor()
     
+    
     # Carregar e analisar dados - usando caminho relativo
-    df = preprocessor.load_and_analyze('data/MiniBooNE_B.txt')
+    df = preprocessor.load_and_analyze('data/dataset_limpo.csv')
     
     # Criar visualizações
     preprocessor.visualize_distributions(df)
