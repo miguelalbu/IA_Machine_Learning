@@ -1,18 +1,13 @@
-import numpy as np
-import pandas as pd
-from sklearn.model_selection import StratifiedKFold, GridSearchCV
-from sklearn.metrics import (accuracy_score, precision_score, recall_score, 
-                           f1_score, roc_auc_score, confusion_matrix, roc_curve)
 from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neural_network import MLPClassifier
-import matplotlib.pyplot as plt
-import seaborn as sns
 import os
 import sys
-sys.path.append(r'c:\Users\migue\OneDrive\Área de Trabalho\IA_Machine_Learning')
+
+# Corrigir o caminho para a pasta raiz do projeto
+sys.path.append(r'c:\Users\joluc\OneDrive\Documents\GitHub\VictorGJ\IA_Machine_Learning')
 
 from utils.visualization_metrics import MetricsVisualizer
 from utils.cross_validation import CrossValidation
@@ -60,18 +55,18 @@ class ModelTrainer:
                 }
             }
         }
-        
+
 
     def train_and_evaluate(self, X, y):
         cv = CrossValidation(n_splits=5)
-        
+
         results = {}
         for name, model_info in self.models.items():
             print(f"\nAvaliando modelo: {name}")
             # Usar o modelo base, não o dicionário inteiro
             model = model_info['model']
             results[name] = cv.evaluate_model(model, X, y)
-        
+
         return results
 
     def print_results(self, results):
@@ -89,18 +84,18 @@ if __name__ == "__main__":
     # Carregar dados pré-processados (assumindo que já foram processados)
     # Substitua isso pelos seus dados reais
     from preprocessamento_a import DataPreprocessor
-    
+
     preprocessor = DataPreprocessor()
-    
+
     # Ajustar o caminho do arquivo
-    data_path = os.path.join(os.path.dirname(__file__), 'data', 'taiwanese_bankruptcy_A.csv')
+    data_path = os.path.join(os.path.dirname(__file__), 'data', 'dataset_limpo.csv')
     df = preprocessor.load_and_analyze(data_path)
     df_cleaned = preprocessor.clean_data(df)
     scaled_data, y = preprocessor.scale_data(df_cleaned)
-    
+
     # Usar dados normalizados para treinamento
     X = scaled_data['normalizer']
-    
+
     # Treinar e avaliar modelos
     trainer = ModelTrainer()
     results = trainer.train_and_evaluate(X, y)
