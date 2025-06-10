@@ -7,7 +7,7 @@ import os
 import sys
 
 # Corrigir o caminho para a pasta raiz do projeto
-sys.path.append(r'c:\Users\joluc\OneDrive\Documents\GitHub\VictorGJ\IA_Machine_Learning')
+sys.path.append(r'C:\Users\migue\OneDrive\Área de Trabalho\IA_Machine_Learning')
 
 from utils.visualization_metrics import MetricsVisualizer
 from utils.cross_validation import CrossValidation
