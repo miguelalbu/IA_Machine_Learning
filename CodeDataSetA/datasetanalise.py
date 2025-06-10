@@ -10,7 +10,7 @@ print(df.info())
 print(df.head())
 
 # 3. Remover colunas desnecessárias (modifique conforme seu caso)
-colunas_para_remover = ['coluna1', 'coluna2']  # Substitua pelos nomes reais
+colunas_para_remover = []  
 df = df.drop(columns=[col for col in colunas_para_remover if col in df.columns])
 
 # 4. Tratar valores ausentes
